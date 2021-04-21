@@ -1,7 +1,8 @@
-.idea/*
-experiments/*
-tfboard_logs/*
-plots/*
 *.DS_Store
 *.swp
+.idea/
+__pycache__/
+experiments/
+plots/
+tfboard_logs/
 
