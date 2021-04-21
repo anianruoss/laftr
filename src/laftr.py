@@ -62,6 +62,10 @@ def main(args):
         tester = Tester(model, data, sess, reslogger)
         tester.evaluate(args['train']['batch_size'])
 
+        # save the model
+        saver = tf.train.Saver(tf.trainable_variables())
+        saver.save(sess, os.path.join(resdirname, 'checkpoints'))
+
     # flush
     tf.reset_default_graph()
 
