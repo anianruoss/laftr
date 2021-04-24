@@ -1,7 +1,7 @@
 import argparse
 import os
-from pathlib import Path
 from collections import defaultdict
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -22,6 +22,10 @@ directories = [x for x in os.listdir(args.dir) if os.path.isdir(args.dir / x)]
 
 for directory in directories:
     model = directory.split('model_class-')[1].split('--')[0]
+    coeff = float(directory.split('fair_coeff-')[1].replace('_', '.'))
+
+    if coeff == 0:
+        model = 'Unfair Baseline'
 
     test_metrics = pd.read_csv(
         args.dir / directory / 'test_metrics.csv', header=None
@@ -32,32 +36,30 @@ for directory in directories:
     eo[model].append(test_metrics['DI'])
     eopp[model].append(test_metrics['DI_FP'])
     acc[model].append(1 - test_metrics['ErrY'])
-    coeffs[model].append(
-        float(directory.split('fair_coeff-')[1].replace('_', '.'))
-    )
+    coeffs[model].append(coeff)
     sens_acc[model].append(1 - test_metrics['ErrA'])
 
-fig, ax = plt.subplots(1, 3, figsize=(12, 4))
+fig, ax = plt.subplots(1, 3, figsize=(15, 5))
 
 for model, dp_values in dp.items():
     indices = np.argsort(np.asarray(dp_values))
     ax[0].plot(
         np.asarray(dp_values)[indices], np.asarray(acc[model])[indices],
-        label=model
+        label=model, marker='s' if model == 'Unfair Baseline' else None
     )
 
 for model, eo_values in eo.items():
     indices = np.argsort(np.asarray(eo_values))
     ax[1].plot(
         np.asarray(eo_values)[indices], np.asarray(acc[model])[indices],
-        label=model
+        label=model, marker='s' if model == 'Unfair Baseline' else None
     )
 
 for model, eopp_values in eopp.items():
     indices = np.argsort(np.asarray(eopp_values))
     ax[2].plot(
         np.asarray(eopp_values)[indices], np.asarray(acc[model])[indices],
-        label=model
+        label=model, marker='s' if model == 'Unfair Baseline' else None
     )
 
 ax[0].set_xlabel(r'$\Delta DP$')
@@ -68,5 +70,6 @@ for i in range(3):
     ax[i].legend()
     ax[i].set_ylabel('Accuracy')
 
+fig.tight_layout()
 plt.savefig('laftr.eps')
 plt.close(fig)
