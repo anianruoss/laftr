@@ -16,7 +16,7 @@ dp = defaultdict(list)
 eo = defaultdict(list)
 eopp = defaultdict(list)
 acc = defaultdict(list)
-sens_acc = defaultdict(list)
+attack_acc = defaultdict(list)
 
 directories = [x for x in os.listdir(args.dir) if os.path.isdir(args.dir / x)]
 
@@ -24,8 +24,8 @@ for directory in directories:
     model = directory.split('model_class-')[1].split('--')[0]
     coeff = float(directory.split('fair_coeff-')[1].replace('_', '.'))
 
-    if coeff == 0:
-        model = 'Unfair Baseline'
+    # if coeff == 0:
+    #     model = 'Unfair Baseline'
 
     test_metrics = pd.read_csv(
         args.dir / directory / 'test_metrics.csv', header=None
@@ -37,7 +37,12 @@ for directory in directories:
     eopp[model].append(test_metrics['DI_FP'])
     acc[model].append(1 - test_metrics['ErrY'])
     coeffs[model].append(coeff)
-    sens_acc[model].append(1 - test_metrics['ErrA'])
+
+    attack_metrics = pd.read_csv(
+        args.dir / directory / 'attack' / 'attack_results.csv', header=None
+    )
+    attack_metrics = dict(zip(attack_metrics[0], attack_metrics[1]))
+    attack_acc[model].append(attack_metrics['accuracy'])
 
 fig, ax = plt.subplots(1, 3, figsize=(15, 5))
 
@@ -72,4 +77,24 @@ for i in range(3):
 
 fig.tight_layout()
 plt.savefig('laftr.eps')
+plt.close(fig)
+
+fig, ax = plt.subplots(1, 4, figsize=(20, 5))
+
+for idx, (model, attack_acc_values) in enumerate(attack_acc.items()):
+    indices = np.argsort(np.asarray(coeffs[model]))
+    ax[idx].plot(
+        np.asarray(coeffs[model])[indices], np.asarray(acc[model])[indices],
+        label='accuracy'
+    )
+    ax[idx].plot(
+        np.asarray(coeffs[model])[indices],
+        np.asarray(attack_acc[model])[indices], label='attack accuracy'
+    )
+    ax[idx].set_xlabel(r'$\gamma$')
+    ax[idx].title.set_text(model)
+    ax[idx].legend()
+
+fig.tight_layout()
+plt.savefig('laftr_attack.eps')
 plt.close(fig)
