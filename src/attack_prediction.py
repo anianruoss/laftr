@@ -57,11 +57,6 @@ def main(args):
         **args['model'], batch_size=args['train']['batch_size']
     )
 
-    # restore the model
-    with tf.Session() as sess:
-        saver = tf.train.Saver()
-        saver.restore(sess, tf.train.latest_checkpoint(resdirname))
-
     y_pos, y_tot = defaultdict(int), defaultdict(int)
     a_pos, a_tot = defaultdict(int), defaultdict(int)
 
@@ -118,12 +113,15 @@ def main(args):
         )
     )
     metrics = {
-        'l1': tf.Variable(0.), 'l2': tf.Variable(0.),
-        'cross_entropy': tf.Variable(0.), 'loss': tf.Variable(0.),
-        'accuracy': tf.Variable(0.), 'balanced_accuracy': tf.Variable(0.),
-        'precision': tf.Variable(0.), 'recall': tf.Variable(0.),
-        'f1': tf.Variable(0.), 'majority_class_accuracy': tf.Variable(
-            1. - a_pos[split] / a_tot[split]
+        'l1': tf.Variable(0., name='l1'), 'l2': tf.Variable(0., name='l2'),
+        'cross_entropy': tf.Variable(0., name='cross_entropy'),
+        'loss': tf.Variable(0., name='loss'), 'f1': tf.Variable(0., name='f1'),
+        'precision': tf.Variable(0., name='precision'),
+        'recall': tf.Variable(0., name='recall'),
+        'accuracy': tf.Variable(0., name='accuracy'),
+        'balanced_accuracy': tf.Variable(0., name='balanced_accuracy'),
+        'majority_class_accuracy': tf.Variable(
+            1. - a_pos[split] / a_tot[split], name='majority_class_accuracy'
         )
     }
     summaries = {
@@ -139,7 +137,6 @@ def main(args):
             ]
         ) for split in ['train', 'valid', 'test']
     }
-
     architecture = '_'.join(map(str, hidden_dims))
     reg_weight = f'l1_weight_{alpha}_l2_weight_{beta}'
     current_date = datetime.now().strftime('%Y-%m-%d_%H:%M:%S')
@@ -151,6 +148,14 @@ def main(args):
 
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
+
+        # restore the trained model
+        saver = tf.train.Saver(
+            var_list=tf.get_collection(
+                tf.GraphKeys.GLOBAL_VARIABLES, scope='model'
+            )
+        )
+        saver.restore(sess, tf.train.latest_checkpoint(resdirname))
 
         # test the trained model
         attack_dir = os.path.join(resdirname, 'attack')

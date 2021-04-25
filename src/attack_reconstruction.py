@@ -49,22 +49,21 @@ def main(args):
         **args['model'], batch_size=args['train']['batch_size']
     )
 
-    # restore the model
-    with tf.Session() as sess:
-        saver = tf.train.Saver()
-        saver.restore(sess, tf.train.latest_checkpoint(resdirname))
-
-    a_pos = defaultdict(int)
-    a_tot = defaultdict(int)
+    y_pos, y_tot = defaultdict(int), defaultdict(int)
+    a_pos, a_tot = defaultdict(int), defaultdict(int)
 
     with tf.Session():
         for split in ['train', 'valid', 'test']:
             for x, y, a in data.get_batch_iterator(split, 1024):
+                y_pos[split] += y.sum()
                 a_pos[split] += a.sum()
+                y_tot[split] += y.shape[0]
                 a_tot[split] += a.shape[0]
 
-    print(a_pos)
-    print(a_tot)
+    print('y_pos:', y_pos)
+    print('y_tot:', y_tot)
+    print('a_pos:', a_pos)
+    print('a_tot:', a_tot)
 
     # reconstruction attack
     batch_size = 512
@@ -93,6 +92,14 @@ def main(args):
 
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
+
+        # restore the trained model
+        saver = tf.train.Saver(
+            var_list=tf.get_collection(
+                tf.GraphKeys.GLOBAL_VARIABLES, scope='model'
+            )
+        )
+        saver.restore(sess, tf.train.latest_checkpoint(resdirname))
 
         # test the trained model
         reslogger = ResultLogger(os.path.join(resdirname, 'attack'))
