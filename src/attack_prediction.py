@@ -245,7 +245,7 @@ def main(args):
 
         with open(os.path.join(attack_dir, 'attack_results.csv'), 'w') as file:
             for key, value in metrics.items():
-                file.write(f'{key}={value.eval()}\n')
+                file.write(f'{key},{value.eval()}\n')
 
     writer.flush()
     writer.close()
