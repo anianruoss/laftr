@@ -77,7 +77,6 @@ def main(args):
     alpha = 0.0
     beta = 1e-5
     activation = 'relu+dropout'
-    hidden_dims = [200, 200, 200, 200]
     sensitive = tf.placeholder(
         name='sensitive', shape=(None, 1), dtype=tf.float32
     )
@@ -86,8 +85,8 @@ def main(args):
     with tf.variable_scope('predict_sensitive'):
         mlp = MLP(
             name='latents_to_sensitive_logits',
-            shapes=[model.zdim] + hidden_dims + [model.adim], activ=activation,
-            keep_prob=dropout_keep_prob
+            shapes=[model.zdim] + args.hidden_layers_attack + [model.adim],
+            activ=activation, keep_prob=dropout_keep_prob
         )
     sensitive_logits = mlp.forward(model._get_latents(model.X, reuse=True))
     sensitive_pred = tf.cast(tf.greater_equal(sensitive_logits, 0), tf.int32)
@@ -137,13 +136,15 @@ def main(args):
             ]
         ) for split in ['train', 'valid', 'test']
     }
-    architecture = '_'.join(map(str, hidden_dims))
+
+    model_name = model_class.__name__
+    architecture = '_'.join(map(str, args.hidden_layers_attack))
     reg_weight = f'l1_weight_{alpha}_l2_weight_{beta}'
     current_date = datetime.now().strftime('%Y-%m-%d_%H:%M:%S')
     dropout = f'dropout_{keep_prob}' if 'dropout' in activation else ''
     writer = tf.summary.FileWriter(logdir=str(
-        LOG_DIR / architecture / activation / dropout / reg_weight /
-        current_date
+        LOG_DIR / model_name / architecture / activation / dropout /
+        reg_weight / current_date
     ))
 
     with tf.Session() as sess:
@@ -158,7 +159,7 @@ def main(args):
         saver.restore(sess, tf.train.latest_checkpoint(resdirname))
 
         # test the trained model
-        attack_dir = os.path.join(resdirname, 'attack')
+        attack_dir = os.path.join(resdirname, 'attack', architecture)
         reslogger = ResultLogger(attack_dir)
         tester = Tester(model, data, sess, reslogger)
         tester.evaluate(args['train']['batch_size'])
@@ -177,7 +178,7 @@ def main(args):
         for epoch_id in range(num_epochs):
             iterators = {
                 'train': data.get_batch_iterator('train', batch_size),
-                # 'valid': data.get_batch_iterator('valid', batch_size),
+                'valid': data.get_batch_iterator('valid', batch_size),
                 'test': data.get_batch_iterator('test', batch_size)
             }
 
