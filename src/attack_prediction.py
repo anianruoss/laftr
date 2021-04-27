@@ -85,7 +85,7 @@ def main(args):
     with tf.variable_scope('predict_sensitive'):
         mlp = MLP(
             name='latents_to_sensitive_logits',
-            shapes=[model.zdim] + args.hidden_layers_attack + [model.adim],
+            shapes=[model.zdim] + args['hidden_layers_attack'] + [model.adim],
             activ=activation, keep_prob=dropout_keep_prob
         )
     sensitive_logits = mlp.forward(model._get_latents(model.X, reuse=True))
@@ -138,7 +138,7 @@ def main(args):
     }
 
     model_name = model_class.__name__
-    architecture = '_'.join(map(str, args.hidden_layers_attack))
+    architecture = '_'.join(map(str, args['hidden_layers_attack']))
     reg_weight = f'l1_weight_{alpha}_l2_weight_{beta}'
     current_date = datetime.now().strftime('%Y-%m-%d_%H:%M:%S')
     dropout = f'dropout_{keep_prob}' if 'dropout' in activation else ''
