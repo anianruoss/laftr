@@ -138,13 +138,14 @@ def main(args):
     }
 
     model_name = model_class.__name__
+    fair_coeff = f'gamma_{model.fair_coeff}'
     architecture = '_'.join(map(str, args['hidden_layers_attack']))
     reg_weight = f'l1_weight_{alpha}_l2_weight_{beta}'
     current_date = datetime.now().strftime('%Y-%m-%d_%H:%M:%S')
     dropout = f'dropout_{keep_prob}' if 'dropout' in activation else ''
     writer = tf.summary.FileWriter(logdir=str(
-        LOG_DIR / model_name / architecture / activation / dropout /
-        reg_weight / current_date
+        LOG_DIR / model_name / fair_coeff / architecture / activation /
+        dropout / reg_weight / current_date
     ))
 
     with tf.Session() as sess:
