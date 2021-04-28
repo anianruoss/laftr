@@ -52,6 +52,7 @@ def main(args):
             A_weights=A_weights, Y_weights=Y_weights, AY_weights=AY_weights
         )
 
+    model_name = args['model']['class']
     model_class = getattr(models, args['model'].pop('class'))
     model = model_class(
         **args['model'], batch_size=args['train']['batch_size']
@@ -137,7 +138,6 @@ def main(args):
         ) for split in ['train', 'valid', 'test']
     }
 
-    model_name = model_class.__name__
     fair_coeff = f'gamma_{model.fair_coeff}'
     architecture = '_'.join(map(str, args['hidden_layers_attack']))
     reg_weight = f'l1_weight_{alpha}_l2_weight_{beta}'
