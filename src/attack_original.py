@@ -23,7 +23,7 @@ def evaluate(sess, model, data):
     for x, y, a in data.get_batch_iterator('test', 512):
         a_pred.append(
             np.round(
-                sess.run(model.A_hat, feed_dict={model.X: x})
+                sess.run(model.A_hat, feed_dict={model.X: x, model.Y: y})
             ).flatten().astype(np.int)
         )
         a_true.append(a.flatten().astype(np.int))
@@ -137,7 +137,7 @@ def main(args):
             for x, y, a in data.get_batch_iterator('train', 512):
                 A_hat, ce_loss, _ = sess.run(
                     [model.A_hat, model.aud_loss, attack_op],
-                    feed_dict={model.X: x, model.A: a}
+                    feed_dict={model.X: x, model.A: a, model.Y: y}
                 )
                 a_pred.append(np.round(A_hat).flatten().astype(np.int))
                 a_true.append(a.flatten().astype(np.int))
