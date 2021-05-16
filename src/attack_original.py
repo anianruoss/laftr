@@ -4,7 +4,7 @@ from pathlib import Path
 
 import numpy as np
 import tensorflow as tf
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, balanced_accuracy_score
 
 from codebase import models
 from codebase.datasets import Dataset
@@ -31,7 +31,10 @@ def evaluate(sess, model, data):
     a_pred = np.concatenate(a_pred, axis=0)
     a_true = np.concatenate(a_true, axis=0)
 
-    return accuracy_score(a_true, a_pred)
+    acc = accuracy_score(a_true, a_pred)
+    bal_acc = balanced_accuracy_score(a_true, a_pred)
+
+    return acc, bal_acc
 
 
 def main(args):
@@ -112,7 +115,7 @@ def main(args):
         tester = Tester(model, data, sess, reslogger)
         tester.evaluate(args['train']['batch_size'])
 
-        accuracy_after_loading = evaluate(sess, model, data)
+        acc_after_loading, bal_acc_after_loading = evaluate(sess, model, data)
 
         sess.run(
             tf.initialize_variables(
@@ -127,7 +130,7 @@ def main(args):
         tester = Tester(model, data, sess, reslogger)
         tester.evaluate(args['train']['batch_size'])
 
-        accuracy_after_initialization = evaluate(sess, model, data)
+        acc_after_reinit, bal_acc_after_reinit = evaluate(sess, model, data)
 
         for epoch_id in range(500):
 
@@ -150,20 +153,26 @@ def main(args):
             print(
                 f'[train] epoch {epoch_id:3d}: '
                 f'accuracy={accuracy_score(a_true, a_pred):.3f}, '
+                f'bal accuracy={balanced_accuracy_score(a_true, a_pred):.3f}, '
                 f'loss={total_ce_loss / total:.9f}'
             )
 
             if epoch_id % 10 == 0:
+                acc, bal_acc = evaluate(sess, model, data)
                 print(
-                    f'[ test] epoch {epoch_id:3d}: '
-                    f'accuracy={evaluate(sess, model, data):.3f}'
+                    f'[ test] epoch {epoch_id:3d}: accuracy={acc:.3f}, '
+                    f'balanced accuracy={bal_acc:.3f}'
                 )
 
-        accuracy_after_training = evaluate(sess, model, data)
+        acc_after_train, bal_acc_after_train = evaluate(sess, model, data)
 
-        print(f'accuracy [loading]        {accuracy_after_loading:.3f}')
-        print(f'accuracy [initialization] {accuracy_after_initialization:.3f}')
-        print(f'accuracy [training]       {accuracy_after_training:.3f}')
+        print(f'accuracy [loading]        {acc_after_loading:.3f}')
+        print(f'accuracy [initialization] {acc_after_reinit:.3f}')
+        print(f'accuracy [training]       {acc_after_train:.3f}')
+        print()
+        print(f'bal accuracy [loading]        {bal_acc_after_loading:.3f}')
+        print(f'bal accuracy [initialization] {bal_acc_after_reinit:.3f}')
+        print(f'bal accuracy [training]       {bal_acc_after_train:.3f}')
 
         # test the trained model
         reslogger = ResultLogger(attack_dir)
@@ -171,11 +180,12 @@ def main(args):
         tester.evaluate(args['train']['batch_size'])
 
     with open(os.path.join(attack_dir, 'attack_results.csv'), 'w') as file:
-        file.write(f'accuracy_loading,{accuracy_after_loading}\n')
-        file.write(
-            f'accuracy_initialization,{accuracy_after_initialization}\n'
-        )
-        file.write(f'accuracy_training,{accuracy_after_training}\n')
+        file.write(f'accuracy_loading,{acc_after_loading}\n')
+        file.write(f'accuracy_initialization,{acc_after_reinit}\n')
+        file.write(f'accuracy_training,{acc_after_train}\n')
+        file.write(f'bal_accuracy_loading,{bal_acc_after_loading}\n')
+        file.write(f'bal_accuracy_initialization,{bal_acc_after_reinit}\n')
+        file.write(f'bal_accuracy_training,{bal_acc_after_train}\n')
 
     # flush
     tf.reset_default_graph()
